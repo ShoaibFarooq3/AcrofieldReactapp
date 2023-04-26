@@ -1,15 +1,35 @@
-
-
 import React, { useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import { useDropzone } from "react-dropzone";
 import { PDFDocument } from 'pdf-lib/dist/pdf-lib.esm.js';
-// import jsonPdf from "../utils/jsonPdf.js";
+import SignatureCanvas from 'react-signature-canvas';
+import { useRef } from "react";
+import toast, { Toaster } from 'react-hot-toast';
+
+
 
 function PdfUploader() {
-    const [file, setFile] = useState(null);
+    const [file, setFile] = useState("");
     const [numPages, setNumPages] = useState(null);
     const [pageNumber, setPageNumber] = useState(1);
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [selectedFilePath, setSelectedFilePath] = useState("");
+    const sigCanvas = useRef({});
+    const [trimmedDataURL, setTrimmedDataURL] = useState(null);
+    const [addSignature, setAddSignature] = useState(false)
+    const clearCanvas = () => {
+        sigCanvas.current.clear();
+        setTrimmedDataURL(null);
+    };
+
+    const saveCanvas = () => {
+        if (sigCanvas.current.isEmpty()) {
+            alert('Please provide a signature first!');
+        } else {
+            setTrimmedDataURL(sigCanvas.current.getTrimmedCanvas().toDataURL('image/png'));
+        }
+    };
+    console.log(trimmedDataURL)
     const data = {
         "Printed name OwnerOccupant": "John Smith",
         "Property Address": "123 Main St.",
@@ -52,10 +72,11 @@ function PdfUploader() {
     // console.log("Data file json ", data)
 
     const onDrop = async (acceptedFiles) => {
+        setSelectedFilePath("")
         const selectedFile = acceptedFiles[0];
         setFile(selectedFile);
         setPageNumber(1);
-
+        setSelectedFilePath(selectedFile.path)
         // Load the uploaded PDF file using pdf-lib
         const pdfBytes = await selectedFile.arrayBuffer();
         const pdfDoc = await PDFDocument.load(pdfBytes);
@@ -72,15 +93,16 @@ function PdfUploader() {
         const pdfBytesFilled = await pdfDoc.save();
         const pdfFileFilled = new File([pdfBytesFilled], `${selectedFile.name}_filled.pdf`, { type: "application/pdf" });
         setFile(pdfFileFilled);
-        console.log(file)
+        console.log("File Path is : - ", selectedFile)
+        setSelectedFilePath(selectedFile.name)
         const fields = form.getFields();
         const fieldNames = form.getFields().map((field) => field.getName());
-        // console.log(fieldNames);
-        console.log(`Field value: ${fieldNames}`);
+        console.log(fieldNames);
+        // console.log(`Field value: ${fieldNames}`);
         // form.getTextField('Property Address').setText('123 Main St.');
 
         for (const [fieldName, field] of Object.entries(fields)) {
-            console.log(`Field name: ${fieldName}`);
+            // console.log(`Field name: ${fieldName}`);
         }
         for (const key in data) {
             const value = data[key];
@@ -107,50 +129,115 @@ function PdfUploader() {
     const handlePageChange = (newPageNumber) => {
         setPageNumber(newPageNumber);
     };
+    const savePdf = async () => {
+        if (!file) {
+            toast.error('Error: Please select a file');
+            // alert("No PDF file uploaded.");
+            return;
+        }
+        toast.loading('Please Wait..');
 
+        // Load the uploaded PDF file using pdf-lib
+        const pdfBytes = await file.arrayBuffer();
+        const pdfDoc = await PDFDocument.load(pdfBytes);
+
+        // Fill the AcroForm fields
+        const form = pdfDoc.getForm();
+
+        for (const key in data) {
+            const value = data[key];
+            form.getTextField(key).setText(value);
+        }
+
+        // Generate a new PDF file with the filled fields
+        const pdfBytesFilled = await pdfDoc.save();
+        const pdfFileFilled = new Blob([pdfBytesFilled], { type: "application/pdf" });
+        const downloadUrl = URL.createObjectURL(pdfFileFilled);
+        const a = document.createElement("a");
+        a.href = downloadUrl;
+        a.download = `${selectedFilePath}_filled.pdf`;
+        a.click();
+        toast.success("Sucessfully Saved")
+    };
+    const handleSignature = () => {
+        setAddSignature(prevState => !prevState);
+    }
     // Set the workerSrc for react-pdf
     pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`;
 
     return (
-        <div className="container">
-            <div {...getRootProps()} className="mt-5 p-5">
-                <input {...getInputProps()} />
-                {isDragActive ? (
-                    <p>Drop the PDF file here</p>
-                ) : (
-                    <p>Drag and drop a PDF file here, or click to select a file</p>
-                )}
-            </div>
-            {file && (
-                <div>
-                    <div>
-                        <Document
-                            file={file}
-                            onLoadSuccess={handleDocumentLoadSuccess}
-                            style={{ width: '100%', height: '800px' }}
+        <>
+            <div className="container border p-5">
+                <div className="row">
+                    <div {...getRootProps()} className=" col-6 ">
+                        {/* <input {...getInputProps()} /> */}
+                        {/* {isDragActive ? (
+                            <p>Drop the PDF file here</p>
+                        ) : ( */}
+                        <div>
+                            {/* <input type="file" 
+                                /> */}
+                            <button className="btn btn-primary">Choose File </button>
+                            <input type="text" value={selectedFilePath} readOnly />
+                        </div>
 
-                        >
-                            <Page pageNumber={pageNumber} />
-                        </Document>
-                        <p>
-                            Page {pageNumber} of {numPages}
-                        </p>
-                        <button
-                            disabled={pageNumber <= 1}
-                            onClick={() => handlePageChange(pageNumber - 1)}
-                        >
-                            Previous
-                        </button>
-                        <button
-                            disabled={pageNumber >= numPages}
-                            onClick={() => handlePageChange(pageNumber + 1)}
-                        >
-                            Next
-                        </button>
+                        {/* )} */}
                     </div>
+                    <div className="col-3"> <button className="btn btn-primary" onClick={savePdf}>Save file </button></div>
+                    <div className="col-3"> <button className="btn btn-primary" onClick={handleSignature}>Add Signature </button></div>
+
+                    {file && (
+                        <div className="continer">
+                            <Document
+                                file={file}
+                                onLoadSuccess={handleDocumentLoadSuccess}
+                                style={{ width: '100%', height: '800px' }}
+
+                            >
+                                <Page pageNumber={pageNumber} />
+                            </Document>
+                            <p>
+                                Page {pageNumber} of {numPages}
+                            </p>
+                            <button
+                                disabled={pageNumber <= 1}
+                                onClick={() => handlePageChange(pageNumber - 1)}
+                            >
+                                Previous
+                            </button>
+                            <button
+                                disabled={pageNumber >= numPages}
+                                onClick={() => handlePageChange(pageNumber + 1)}
+                            >
+                                Next
+                            </button>
+                        </div>
+                    )}
                 </div>
-            )}
-        </div>
+                {addSignature ?
+                    <div>
+                        <SignatureCanvas
+                            penColor='black'
+                            canvasProps={{ width: 500, height: 200, className: 'sigCanvas' }}
+                            ref={sigCanvas}
+                        />
+                        <div>
+                            <button onClick={clearCanvas}>Clear</button>
+                            <button onClick={saveCanvas}>Save</button>
+                        </div>
+                        {trimmedDataURL && (
+                            <div>
+                                <h2>Preview:</h2>
+                                <img src={trimmedDataURL} alt='Signature' />
+                            </div>
+                        )}
+                    </div>
+                    :
+                    <></>
+                }
+
+            </div>
+        </>
     );
 }
 
