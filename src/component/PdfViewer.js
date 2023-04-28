@@ -17,6 +17,7 @@ function PdfUploader() {
     const sigCanvas = useRef({});
     const [trimmedDataURL, setTrimmedDataURL] = useState(null);
     const [addSignature, setAddSignature] = useState(false)
+
     const clearCanvas = () => {
         sigCanvas.current.clear();
         setTrimmedDataURL(null);
@@ -69,7 +70,7 @@ function PdfUploader() {
         // "EPA consumer's guide to radon Signature Date": "2023-04-21",
         // "Pamplet Receipt copy received": true
     }
-    // console.log("Data file json ", data)
+    console.log("Data file json ", data)
 
     const onDrop = async (acceptedFiles) => {
         setSelectedFilePath("")
@@ -77,6 +78,7 @@ function PdfUploader() {
         setFile(selectedFile);
         setPageNumber(1);
         setSelectedFilePath(selectedFile.path)
+
         // Load the uploaded PDF file using pdf-lib
         const pdfBytes = await selectedFile.arrayBuffer();
         const pdfDoc = await PDFDocument.load(pdfBytes);
@@ -89,6 +91,7 @@ function PdfUploader() {
         form.getTextField('Pamplet Receipt Signature Date_af_date').setText('2023-04-21');
         form.getTextField('Date of Energy Audit_af_date').setText('2023-04-21');
 
+
         // Generate a new PDF file with the filled fields
         const pdfBytesFilled = await pdfDoc.save();
         const pdfFileFilled = new File([pdfBytesFilled], `${selectedFile.name}_filled.pdf`, { type: "application/pdf" });
@@ -97,21 +100,21 @@ function PdfUploader() {
         setSelectedFilePath(selectedFile.name)
         const fields = form.getFields();
         const fieldNames = form.getFields().map((field) => field.getName());
-        console.log(fieldNames);
+        // console.log(fieldNames);
         // console.log(`Field value: ${fieldNames}`);
         // form.getTextField('Property Address').setText('123 Main St.');
 
-        for (const [fieldName, field] of Object.entries(fields)) {
-            // console.log(`Field name: ${fieldName}`);
-        }
-        for (const key in data) {
-            const value = data[key];
-            // form.getTextField('Printed name OwnerOccupant').setText('John Doe');
+        // for (const [fieldName, field] of Object.entries(fields)) {
+        //     // console.log(`Field name: ${fieldName}`);
+        // }
+        // for (const key in data) {
+        //     const value = data[key];
+        //     // form.getTextField('Printed name OwnerOccupant').setText('John Doe');
 
-            // console.log("key", key)
-            // console.log(value)
-            // form.getTextField(key).setText(value);
-        }
+        //     // console.log("key", key)
+        //     // console.log(value)
+        //     // form.getTextField(key).setText(value);
+        // }
 
 
 
@@ -169,7 +172,7 @@ function PdfUploader() {
         <>
             <div className="container border p-5">
                 <div className="row">
-                    <div {...getRootProps()} className=" col-6 ">
+                    <div {...getRootProps()} className="col-5">
                         {/* <input {...getInputProps()} /> */}
                         {/* {isDragActive ? (
                             <p>Drop the PDF file here</p>
@@ -187,12 +190,11 @@ function PdfUploader() {
                     <div className="col-3"> <button className="btn btn-primary" onClick={handleSignature}>Add Signature </button></div>
 
                     {file && (
-                        <div className="continer">
+                        <div className="">
                             <Document
                                 file={file}
                                 onLoadSuccess={handleDocumentLoadSuccess}
-                                style={{ width: '100%', height: '800px' }}
-
+                                style={{ width: '100%', height: '100px', overflow: "hidden" }}
                             >
                                 <Page pageNumber={pageNumber} />
                             </Document>

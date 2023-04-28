@@ -1,15 +1,12 @@
 import { Toaster } from 'react-hot-toast';
 import './App.css';
-import NewFile from './component/NewFile';
 import PdfViewer from './component/PdfViewer';
-import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 function App() {
   return (
     <div className="App">
       <PdfViewer />
-      {/* <NewFile /> */}
       <Toaster
         position="top-center"
         reverseOrder={false}
